@@ -1,5 +1,6 @@
 import { randomUUID as uuid } from 'node:crypto'
 
+import { GraphQLError } from 'graphql'
 import { ApolloServer } from '@apollo/server'
 import { startStandaloneServer } from '@apollo/server/standalone'
 
@@ -33,6 +34,11 @@ const persons = [
 ]
 
 const typeDefinitions = `#graphql
+  enum HasPhone {
+    YES
+    NO
+  }
+
   type Address {
     street: String!
     city: String!
@@ -48,16 +54,61 @@ const typeDefinitions = `#graphql
 
   type Query {
     personCount: Int!
-    allPersons: [Person]!
+    allPersons(phone: HasPhone): [Person]!
     findPerson(name: String!): Person
+  }
+
+  type Mutation {
+    addPerson(
+      name: String!
+      street: String!
+      city: String!
+      phone: String
+    ): Person
+    editNumber(
+      name: String!
+      phone: String!
+    ): Person
   }
 `
 
 const resolvers = {
   Query: {
     personCount: () => persons.length,
-    allPersons: () => persons,
+    allPersons: (root, args) => {
+      if (!args.phone) return persons
+
+      const byPhone = (person) => args.phone === "YES"
+        ? person.phone : !person.phone
+
+      return persons.filter(byPhone)
+    },
     findPerson: (root, args) => persons.find((p) => p.name === args.name)
+  },
+  Mutation: {
+    addPerson: (root, args) => {
+      if (persons.find((p) => p.name === args.name)) {
+        throw new GraphQLError('Person already exists', {
+          extensions: {
+            code: 'PERSON_ALREADY_EXISTS'
+          }
+        })
+      }
+
+      const person = { id: uuid(), ...args }
+      persons.push(person)
+      return person
+    },
+    editNumber: (root, args) => {
+      const personIndex = persons.findIndex((p) => p.name === args.name)
+      if (personIndex === -1) return null
+      
+      const person = persons[personIndex]
+      const updatedPerson = { ...person, phone: args.phone }
+      persons[personIndex] = updatedPerson
+
+      return updatedPerson
+    }
   },
   Person: {
     address: (root) => {
