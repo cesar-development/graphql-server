@@ -33,13 +33,16 @@ const persons = [
 ]
 
 const typeDefinitions = `#graphql
+  type Address {
+    street: String!
+    city: String!
+  }
+
   type Person {
     id: ID!
     name: String!
-    street: String!
-    city: String!
     phone: String
-    address: String
+    address: Address!
     check: Boolean
   }
 
@@ -57,7 +60,12 @@ const resolvers = {
     findPerson: (root, args) => persons.find((p) => p.name === args.name)
   },
   Person: {
-    address: (root) => `${root.street}, ${root.city}`,
+    address: (root) => {
+      return {
+        street: root.street,
+        city: root.city
+      }
+    },
     check: () => true
   }
 }
