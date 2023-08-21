@@ -23,6 +23,12 @@ const persons = [
     name: 'Hector de Leon',
     street: 'Privada BackEnd',
     city: 'México City'
+  },
+  {
+    id: uuid(),
+    name: 'Fernando Herrera',
+    street: 'Pasaje Testing',
+    city: 'Ottawa'
   }
 ]
 
@@ -33,18 +39,26 @@ const typeDefinitions = `#graphql
     street: String!
     city: String!
     phone: String
+    address: String
+    check: Boolean
   }
 
   type Query {
     personCount: Int!
     allPersons: [Person]!
+    findPerson(name: String!): Person
   }
 `
 
 const resolvers = {
   Query: {
     personCount: () => persons.length,
-    allPersons: () => persons
+    allPersons: () => persons,
+    findPerson: (root, args) => persons.find((p) => p.name === args.name)
+  },
+  Person: {
+    address: (root) => `${root.street}, ${root.city}`,
+    check: () => true
   }
 }
 
