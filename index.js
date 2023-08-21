@@ -3,6 +3,7 @@ import { randomUUID as uuid } from 'node:crypto'
 import { GraphQLError } from 'graphql'
 import { ApolloServer } from '@apollo/server'
 import { startStandaloneServer } from '@apollo/server/standalone'
+import axios from 'axios'
 
 const persons = [
   {
@@ -75,13 +76,14 @@ const typeDefinitions = `#graphql
 const resolvers = {
   Query: {
     personCount: () => persons.length,
-    allPersons: (root, args) => {
-      if (!args.phone) return persons
+    allPersons: async (root, args) => {
+      const { data: personsFromApi } = await axios.get('http://localhost:3000/persons')
+      if (!args.phone) return personsFromApi
 
       const byPhone = (person) => args.phone === "YES"
         ? person.phone : !person.phone
 
-      return persons.filter(byPhone)
+      return personsFromApi.filter(byPhone)
     },
     findPerson: (root, args) => persons.find((p) => p.name === args.name)
   },
